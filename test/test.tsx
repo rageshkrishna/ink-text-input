@@ -312,3 +312,133 @@ test('cursor navigation through multi-line text', async t => {
 	const afterInsert = lastFrame();
 	t.true(afterInsert?.includes('X'));
 });
+
+test('large paste shows placeholder', async t => {
+	function StatefulTextInput() {
+		const [value, setValue] = useState('');
+
+		return <TextInput value={value} onChange={setValue} />;
+	}
+
+	const {stdin, lastFrame} = render(<StatefulTextInput />);
+
+	await delay(100);
+	// Create a large string (200+ characters)
+	const largeText = 'A'.repeat(250);
+
+	// Paste large text
+	stdin.write(largeText);
+	await delay(100);
+
+	const frame = lastFrame();
+	// Should show placeholder instead of actual text
+	t.true(frame?.includes('(Pasted: 250 chars)'));
+	// Should not show the repeated A's
+	t.false(frame?.includes('AAAAAAAA'));
+});
+
+test('manually typed text before large paste remains visible', async t => {
+	function StatefulTextInput() {
+		const [value, setValue] = useState('');
+
+		return <TextInput value={value} onChange={setValue} />;
+	}
+
+	const {stdin, lastFrame} = render(<StatefulTextInput />);
+
+	await delay(100);
+	// Type some text
+	stdin.write('Hello: ');
+	await delay(100);
+
+	// Paste large text
+	const largeText = 'B'.repeat(200);
+	stdin.write(largeText);
+	await delay(100);
+
+	const frame = lastFrame();
+	// Should show typed text and placeholder
+	t.true(frame?.includes('Hello: '));
+	t.true(frame?.includes('(Pasted: 200 chars)'));
+	// Should not show the repeated B's
+	t.false(frame?.includes('BBBBBBBB'));
+});
+
+test('multiple large pastes show multiple placeholders', async t => {
+	function StatefulTextInput() {
+		const [value, setValue] = useState('');
+
+		return <TextInput value={value} onChange={setValue} />;
+	}
+
+	const {stdin, lastFrame} = render(<StatefulTextInput />);
+
+	await delay(100);
+	// Type text, paste, type more, paste again
+	stdin.write('First: ');
+	await delay(100);
+	stdin.write('A'.repeat(200));
+	await delay(100);
+	stdin.write(' Second: ');
+	await delay(100);
+	stdin.write('B'.repeat(300));
+	await delay(100);
+
+	const frame = lastFrame();
+	// Should show both typed texts and both placeholders
+	t.true(frame?.includes('First: '));
+	t.true(frame?.includes('(Pasted: 200 chars)'));
+	t.true(frame?.includes(' Second: '));
+	t.true(frame?.includes('(Pasted: 300 chars)'));
+});
+
+test('deleting at placeholder end removes entire pasted segment', async t => {
+	function StatefulTextInput() {
+		const [value, setValue] = useState('');
+
+		return <TextInput value={value} onChange={setValue} />;
+	}
+
+	const {stdin, lastFrame} = render(<StatefulTextInput />);
+
+	await delay(100);
+	stdin.write('Text: ');
+	await delay(100);
+	const largeText = 'X'.repeat(200);
+	stdin.write(largeText);
+	await delay(100);
+
+	// Cursor is already at the end of the pasted segment
+	// Backspace should remove the entire segment
+	stdin.write(del);
+	await delay(100);
+
+	const frame = lastFrame();
+	// Should still have the typed text (with or without trailing space due to cursor rendering)
+	t.true(frame?.startsWith('Text:'));
+	// Placeholder should be gone
+	t.false(frame?.includes('(Pasted:'));
+	// Pasted text should be gone
+	t.false(frame?.includes('XXXXXXXX'));
+});
+
+test('small pastes do not trigger placeholder', async t => {
+	function StatefulTextInput() {
+		const [value, setValue] = useState('');
+
+		return <TextInput value={value} onChange={setValue} />;
+	}
+
+	const {stdin, lastFrame} = render(<StatefulTextInput />);
+
+	await delay(100);
+	// Paste text under threshold (< 200 characters)
+	const smallText = 'Hello World';
+	stdin.write(smallText);
+	await delay(100);
+
+	const frame = lastFrame();
+	// Should show actual text, not placeholder
+	t.true(frame?.includes('Hello World'));
+	t.false(frame?.includes('(Pasted:'));
+});
