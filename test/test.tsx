@@ -247,3 +247,68 @@ test('adjust cursor when text is shorter than last value', async t => {
 	await delay(100);
 	t.is(lastFrame(), `AB${chalk.inverse(' ')}`);
 });
+
+test('sanitize carriage returns in pasted text', async t => {
+	function StatefulTextInput() {
+		const [value, setValue] = useState('');
+
+		return <TextInput value={value} onChange={setValue} />;
+	}
+
+	const {stdin, lastFrame} = render(<StatefulTextInput />);
+
+	await delay(100);
+	// Simulate pasting text with \r characters
+	stdin.write('Line1\rLine2');
+	await delay(100);
+
+	// The \r should be replaced with \n, and we should see both lines
+	const output = lastFrame();
+	t.true(output?.includes('Line1'));
+	t.true(output?.includes('Line2'));
+	// Value should have \n instead of \r
+	t.regex(output || '', /Line1\nLine2/);
+});
+
+test('cursor navigation through multi-line text', async t => {
+	function StatefulTextInput() {
+		const [value, setValue] = useState('');
+
+		return <TextInput value={value} onChange={setValue} />;
+	}
+
+	const {stdin, lastFrame} = render(<StatefulTextInput />);
+
+	await delay(100);
+	// Paste multi-line text
+	stdin.write('AB\nCD');
+	await delay(100);
+
+	// Verify multi-line text is rendered
+	const frame = lastFrame();
+	t.true(frame?.includes('AB'));
+	t.true(frame?.includes('CD'));
+	t.true(frame?.includes('\n'));
+
+	// Navigate through the text with arrow keys
+	// This tests that cursor navigation works even when cursor crosses newline characters
+	stdin.write(arrowLeft); // Move left
+	await delay(100);
+	stdin.write(arrowLeft); // Move left
+	await delay(100);
+	stdin.write(arrowLeft); // Move left - cursor should now be on the newline
+	await delay(100);
+	stdin.write(arrowLeft); // Move left
+	await delay(100);
+
+	// After navigating, text should still be intact
+	const finalFrame = lastFrame();
+	t.true(finalFrame?.includes('AB'));
+	t.true(finalFrame?.includes('CD'));
+
+	// Test that we can insert text in the middle after navigating through newlines
+	stdin.write('X');
+	await delay(100);
+	const afterInsert = lastFrame();
+	t.true(afterInsert?.includes('X'));
+});

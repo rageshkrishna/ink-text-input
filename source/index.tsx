@@ -100,10 +100,14 @@ function TextInput({
 		let i = 0;
 
 		for (const char of value) {
-			renderedValue +=
-				i >= cursorOffset - cursorActualWidth && i <= cursorOffset
-					? chalk.inverse(char)
-					: char;
+			const isCursorHere = i >= cursorOffset - cursorActualWidth && i <= cursorOffset;
+
+			if (isCursorHere && char === '\n') {
+				// When cursor is on a newline, show a visible cursor before the newline
+				renderedValue += chalk.inverse(' ') + char;
+			} else {
+				renderedValue += isCursorHere ? chalk.inverse(char) : char;
+			}
 
 			i++;
 		}
@@ -154,15 +158,18 @@ function TextInput({
 					nextCursorOffset--;
 				}
 			} else {
+				// Sanitize input to replace \r with \n for proper multi-line handling
+				const sanitizedInput = input.replaceAll('\r', '\n');
+
 				nextValue =
 					originalValue.slice(0, cursorOffset) +
-					input +
+					sanitizedInput +
 					originalValue.slice(cursorOffset, originalValue.length);
 
-				nextCursorOffset += input.length;
+				nextCursorOffset += sanitizedInput.length;
 
-				if (input.length > 1) {
-					nextCursorWidth = input.length;
+				if (sanitizedInput.length > 1) {
+					nextCursorWidth = sanitizedInput.length;
 				}
 			}
 
