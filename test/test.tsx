@@ -262,12 +262,9 @@ test('sanitize carriage returns in pasted text', async t => {
 	stdin.write('Line1\rLine2');
 	await delay(100);
 
-	// The \r should be replaced with \n, and we should see both lines
+	// The \r should be replaced with \n, with cursor at the end
 	const output = lastFrame();
-	t.true(output?.includes('Line1'));
-	t.true(output?.includes('Line2'));
-	// Value should have \n instead of \r
-	t.regex(output || '', /Line1\nLine2/);
+	t.is(output, `Line1\nLine2${cursor}`);
 });
 
 test('cursor navigation through multi-line text', async t => {
@@ -284,33 +281,30 @@ test('cursor navigation through multi-line text', async t => {
 	stdin.write('AB\nCD');
 	await delay(100);
 
-	// Verify multi-line text is rendered
+	// Verify multi-line text is rendered with cursor at the end
 	const frame = lastFrame();
-	t.true(frame?.includes('AB'));
-	t.true(frame?.includes('CD'));
-	t.true(frame?.includes('\n'));
+	t.is(frame, `AB\nCD${cursor}`);
 
 	// Navigate through the text with arrow keys
 	// This tests that cursor navigation works even when cursor crosses newline characters
-	stdin.write(arrowLeft); // Move left
+	stdin.write(arrowLeft); // Move left (cursor on 'D')
 	await delay(100);
-	stdin.write(arrowLeft); // Move left
+	stdin.write(arrowLeft); // Move left (cursor on 'C')
 	await delay(100);
-	stdin.write(arrowLeft); // Move left - cursor should now be on the newline
+	stdin.write(arrowLeft); // Move left (cursor on newline)
 	await delay(100);
-	stdin.write(arrowLeft); // Move left
+	stdin.write(arrowLeft); // Move left (cursor on 'B')
 	await delay(100);
 
-	// After navigating, text should still be intact
+	// After navigating, cursor should be on 'B'
 	const finalFrame = lastFrame();
-	t.true(finalFrame?.includes('AB'));
-	t.true(finalFrame?.includes('CD'));
+	t.is(finalFrame, `A${chalk.inverse('B')}\nCD`);
 
 	// Test that we can insert text in the middle after navigating through newlines
 	stdin.write('X');
 	await delay(100);
 	const afterInsert = lastFrame();
-	t.true(afterInsert?.includes('X'));
+	t.is(afterInsert, `AX${chalk.inverse('B')}\nCD`);
 });
 
 test('large paste shows placeholder', async t => {

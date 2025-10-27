@@ -140,7 +140,8 @@ function TextInput({
 		if (pastedSegments.length > 0) {
 			// Find which segment (if any) contains the cursor
 			const segmentAtCursor = pastedSegments.find(
-				seg => cursorOffset >= seg.start && cursorOffset < seg.start + seg.length,
+				seg =>
+					cursorOffset >= seg.start && cursorOffset < seg.start + seg.length,
 			);
 
 			if (segmentAtCursor) {
@@ -149,7 +150,10 @@ function TextInput({
 			} else {
 				// Cursor is in regular text - need to calculate display position
 				// For simplicity, just show cursor at end for now
-				renderedValue = displayValue.length > 0 ? displayValue + chalk.inverse(' ') : chalk.inverse(' ');
+				renderedValue =
+					displayValue.length > 0
+						? displayValue + chalk.inverse(' ')
+						: chalk.inverse(' ');
 			}
 		} else {
 			// Normal cursor rendering (no pasted segments)
@@ -158,7 +162,8 @@ function TextInput({
 			let i = 0;
 
 			for (const char of value) {
-				const isCursorHere = i >= cursorOffset - cursorActualWidth && i <= cursorOffset;
+				const isCursorHere =
+					i >= cursorOffset - cursorActualWidth && i <= cursorOffset;
 
 				if (isCursorHere && char === '\n') {
 					// When cursor is on a newline, show a visible cursor before the newline
@@ -206,7 +211,9 @@ function TextInput({
 
 					// Skip over pasted segments when moving left
 					const segmentAtNewPos = pastedSegments.find(
-						seg => nextCursorOffset > seg.start && nextCursorOffset <= seg.start + seg.length,
+						seg =>
+							nextCursorOffset > seg.start &&
+							nextCursorOffset <= seg.start + seg.length,
 					);
 					if (segmentAtNewPos) {
 						nextCursorOffset = segmentAtNewPos.start;
@@ -218,7 +225,9 @@ function TextInput({
 
 					// Skip over pasted segments when moving right
 					const segmentAtNewPos = pastedSegments.find(
-						seg => nextCursorOffset >= seg.start && nextCursorOffset < seg.start + seg.length,
+						seg =>
+							nextCursorOffset >= seg.start &&
+							nextCursorOffset < seg.start + seg.length,
 					);
 					if (segmentAtNewPos) {
 						nextCursorOffset = segmentAtNewPos.start + segmentAtNewPos.length;
@@ -235,7 +244,9 @@ function TextInput({
 						// Delete the entire pasted segment
 						nextValue =
 							originalValue.slice(0, segmentBeforeCursor.start) +
-							originalValue.slice(segmentBeforeCursor.start + segmentBeforeCursor.length);
+							originalValue.slice(
+								segmentBeforeCursor.start + segmentBeforeCursor.length,
+							);
 
 						nextCursorOffset = segmentBeforeCursor.start;
 
@@ -245,7 +256,10 @@ function TextInput({
 								.filter(seg => seg.id !== segmentBeforeCursor.id)
 								.map(seg => {
 									if (seg.start > segmentBeforeCursor.start) {
-										return {...seg, start: seg.start - segmentBeforeCursor.length};
+										return {
+											...seg,
+											start: seg.start - segmentBeforeCursor.length,
+										};
 									}
 
 									return seg;
@@ -255,7 +269,9 @@ function TextInput({
 						// Normal backspace - delete one character
 						// But don't allow deleting if it would be inside a segment
 						const wouldBeInsideSegment = pastedSegments.some(
-							seg => cursorOffset - 1 >= seg.start && cursorOffset - 1 < seg.start + seg.length,
+							seg =>
+								cursorOffset - 1 >= seg.start &&
+								cursorOffset - 1 < seg.start + seg.length,
 						);
 
 						if (!wouldBeInsideSegment) {
@@ -297,7 +313,9 @@ function TextInput({
 						setPastedSegments(prevSegments => {
 							// Remove any segments that overlap with the paste position
 							const nonOverlapping = prevSegments.filter(
-								seg => seg.start + seg.length <= cursorOffset || seg.start >= cursorOffset,
+								seg =>
+									seg.start + seg.length <= cursorOffset ||
+									seg.start >= cursorOffset,
 							);
 
 							// Adjust positions of segments that come after this insertion
@@ -324,7 +342,10 @@ function TextInput({
 							return prevSegments
 								.filter(seg => {
 									// Remove segments that contain the insertion point
-									return !(cursorOffset > seg.start && cursorOffset < seg.start + seg.length);
+									return !(
+										cursorOffset > seg.start &&
+										cursorOffset < seg.start + seg.length
+									);
 								})
 								.map(seg => {
 									// Adjust segments that come after the insertion
